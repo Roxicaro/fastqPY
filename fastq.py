@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 import timeit
+import gzip
 from collections import Counter
 
 #Ion P1 Adapter
@@ -19,13 +21,21 @@ q_score_dict = {'!': 0, '"': 1, '#': 2, '$': 3, '%': 4, '&': 5, "'": 6, '(': 7, 
 
 q_scores = Counter() #empty dict to be populated with q-score counts
 
+def open_fastq(path):
+    #Check if gzip
+    if path.endswith(('.gz','.tgz','.gzip')):
+        return gzip.open(path, 'rt')
+    #Not gzip
+    elif path.endswith(('.fastq','.txt')):
+        return open(path)
+
 def main():
     #fastq_path = r"C:\Users\32313\Desktop\Scripts\FASTQ\example.fastq"
     fastq_path = input('Enter fastq file path: ').strip('"')
-    #fastq_path = fastq_path.strip('"')
     sequences_lenght = []
 
-    with open(fastq_path) as f:
+    #Check if gzip
+    with open_fastq(fastq_path) as f:
         while True:
             header = f.readline() #1st line
             if header.strip() == '':
@@ -34,7 +44,9 @@ def main():
             plus_sign = f.readline() #3rd line
             quality = f.readline() #4th line
 
-            sequences_lenght.append(len(sequence.strip())) #Append lenght of sequence to a list
+            read_lenght = len(sequence.strip())
+            sequences_lenght.append(read_lenght) #Append lenght of sequence to a list
+            
             q_scores.update(quality.strip()) #Updates the counter. Chars are added to the dict as they appear. New appearances of the same char adds to the count
 
     #Get total bases and calculate mean read lenght
@@ -59,5 +71,15 @@ def main():
     print(f'Q30 bases = {Q30} ({Q30_percent}%)')
     print(f'Q20 bases = {Q20} ({Q20_percent}%)')
 
-main()
-#print('\nTime taken:', round(timeit.timeit(main, number=1), 3), 'seconds')
+    try:
+        plt.hist(sequences_lenght, bins = 150)
+        plt.xlabel('Read Length')
+        plt.xlim(0,350)
+        plt.ylabel('Count')
+        plt.title("Read Length Histogram")
+        plt.show()
+    except:
+        print('Error: Unable to draw plot')
+
+#main()
+print('\nTime taken:', round(timeit.timeit(main, number=1), 3), 'seconds')
